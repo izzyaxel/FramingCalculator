@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 
 template <typename T> struct vec2
@@ -7,6 +8,16 @@ template <typename T> struct vec2
   {
     this->x() = x;
     this->y() = y;
+  }
+  template <typename U> vec2<T> operator*(U val)
+  {
+    vec2<T> out{this->x() * val, this->y() * val};
+    return out;
+  }
+  void floor()
+  {
+    std::floor(this->x());
+    std::floor(this->y());
   }
   T& x() { return this->data[0]; }
   T& y() { return this->data[1]; }
@@ -23,6 +34,18 @@ template <typename T> struct border
     this->left() = l;
     this->right() = r;
   }
+  template <typename U> border<T> operator*(U val)
+  {
+    border<T> out{this->top() * val, this->bottom() * val, this->left() * val, this->right() * val};
+    return out;
+  }
+  void floor()
+  {
+    std::floor(this->top());
+    std::floor(this->bottom());
+    std::floor(this->left());
+    std::floor(this->right());
+  }
   T& top() { return this->data[0]; }
   T& bottom() { return this->data[1]; }
   T& left() { return this->data[2]; }
@@ -30,11 +53,34 @@ template <typename T> struct border
   T data[4]{0};
 };
 
+std::string nearestFraction(float const decimal)
+{
+  switch((int)std::round(decimal * 16.0f))
+  {
+    case 1: { return "1/16"; }
+    case 2: { return "1/8"; }
+    case 3: { return "3/16"; }
+    case 4: { return "1/4"; }
+    case 5: { return "5/16";}
+    case 6: { return "3/8";}
+    case 7: { return "7/16"; }
+    case 8: { return "1/2"; }
+    case 9: { return "9/16"; }
+    case 10: { return "5/8"; }
+    case 11: { return "11/16"; }
+    case 12: { return "3/4"; }
+    case 13: { return "13/16"; }
+    case 14: { return "7/8"; }
+    case 15: { return "15/16"; }
+    default: return "";
+  }
+}
+
 int main()
 {
-  double constexpr mmToInch = 0.03937008;
-  vec2<float> matSize, printSize, artSize, artCenter, centeringOffset, cutLine;
-  border<float> artBorder, alignBorder;
+  float constexpr mmToInch = 0.03937008f;
+  vec2<float> matSize, printSize, artSize, artCenter, centeringOffset, cutLine, cutLineInch;
+  border<float> artBorder, alignBorder, alignBorderInch;
   
   std::cout << "Units: mm" << std::endl;
   std::cout << "Enter mat board WIDTH: ";
@@ -87,18 +133,32 @@ int main()
 
   artCenter = {artSize.x() / 2.0f, artSize.y() / 2.0f};
   centeringOffset = {matSize.x() / 2.0f - artCenter.x(), matSize.y() / 2.0f - artCenter.y()};
+
   cutLine = {centeringOffset.x() + artCenter.x(), centeringOffset.y() + artCenter.y()};
+  cutLineInch = cutLine * mmToInch;
+  cutLineInch.floor();
+
   alignBorder = {cutLine.y() + artBorder.top(), cutLine.y() + artBorder.bottom(), cutLine.x() + artBorder.left(), cutLine.x() + artBorder.right()};
+  alignBorderInch = alignBorder * mmToInch;
+  alignBorderInch.floor();
 
-  std::cout << "Make alignment lines on the mat board at " << alignBorder.top() << "mm (" << alignBorder.top() * mmToInch << "\") from the top, "
-    << alignBorder.bottom() << "mm (" << alignBorder.bottom() * mmToInch << "\") from the bottom, "
-    << alignBorder.left() << "mm (" << alignBorder.left() * mmToInch << "\") from the left, "
-    << alignBorder.right() << "mm (" << alignBorder.right() * mmToInch << "\") from the right." << std::endl;
+  std::string const alignFracTop = nearestFraction(alignBorderInch.top() - std::floor(alignBorderInch.top()));
+  std::string const alignFracBottom = nearestFraction(alignBorderInch.bottom() - std::floor(alignBorderInch.bottom()));
+  std::string const alignFracLeft = nearestFraction(alignBorderInch.left() - std::floor(alignBorderInch.left()));
+  std::string const alignFracRight = nearestFraction(alignBorderInch.right() - std::floor(alignBorderInch.right()));
 
-  std::cout << "Make cutout lines on the mat board at " << cutLine.y() << "mm (" << cutLine.y() * mmToInch << "\") from the top, "
-    << cutLine.y() << "mm (" << cutLine.y() * mmToInch << "\") from the bottom, "
-    << cutLine.x() << "mm (" << cutLine.x() * mmToInch << "\") from the left, "
-    << cutLine.x() << "mm (" << cutLine.x() * mmToInch << "\") from the right." << std::endl;
+  std::string const cutFracX = nearestFraction(cutLine.x() - std::floor(cutLine.x()));
+  std::string const cutFracY = nearestFraction(cutLine.y() - std::floor(cutLine.y()));
+
+  std::cout << "Make alignment lines on the mat board at " << alignBorder.top() << "mm (" << alignBorderInch.top() << " " << alignFracTop << "\") from the top, "
+    << alignBorder.bottom() << "mm (" << alignBorderInch.bottom() << " " << alignFracBottom << "\") from the bottom, "
+    << alignBorder.left() << "mm (" << alignBorderInch.left() << " " << alignFracLeft << "\") from the left, "
+    << alignBorder.right() << "mm (" << alignBorderInch.right() << " " << alignFracRight << "\") from the right." << std::endl;
+
+  std::cout << "Make cutout lines on the mat board at " << cutLine.y() << "mm (" << cutLineInch.y() << " " << cutFracY << "\") from the top, "
+    << cutLine.y() << "mm (" << cutLineInch.y() << " " << cutFracY << "\") from the bottom, "
+    << cutLine.x() << "mm (" << cutLineInch.x() << " " << cutFracX << "\") from the left, "
+    << cutLine.x() << "mm (" << cutLineInch.x() << " " << cutFracX << "\") from the right." << std::endl;
   std::cin.get();
 
   return 0;
