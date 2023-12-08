@@ -9,18 +9,21 @@ template <typename T> struct vec2
     this->x() = x;
     this->y() = y;
   }
-  template <typename U> vec2<T> operator*(U val)
+  template <typename U> vec2 operator*(U val) const
   {
-    vec2<T> out{this->x() * val, this->y() * val};
+    vec2 out{this->x() * val, this->y() * val};
     return out;
   }
   void floor()
   {
-    std::floor(this->x());
-    std::floor(this->y());
+    this->x() = std::floor(this->x());
+    this->y() = std::floor(this->y());
   }
   T& x() { return this->data[0]; }
   T& y() { return this->data[1]; }
+
+  [[nodiscard]] T x() const { return this->data[0]; }
+  [[nodiscard]] T y() const { return this->data[1]; }
   T data[2]{0};
 };
 
@@ -34,22 +37,27 @@ template <typename T> struct border
     this->left() = l;
     this->right() = r;
   }
-  template <typename U> border<T> operator*(U val)
+  template <typename U> border operator*(U val) const
   {
-    border<T> out{this->top() * val, this->bottom() * val, this->left() * val, this->right() * val};
+    border out{this->top() * val, this->bottom() * val, this->left() * val, this->right() * val};
     return out;
   }
   void floor()
   {
-    std::floor(this->top());
-    std::floor(this->bottom());
-    std::floor(this->left());
-    std::floor(this->right());
+    this->top() = std::floor(this->top());
+    this->bottom() = std::floor(this->bottom());
+    this->left() = std::floor(this->left());
+    this->right() = std::floor(this->right());
   }
   T& top() { return this->data[0]; }
   T& bottom() { return this->data[1]; }
   T& left() { return this->data[2]; }
   T& right() { return this->data[3]; }
+
+  [[nodiscard]] T top() const { return this->data[0]; }
+  [[nodiscard]] T bottom() const { return this->data[1]; }
+  [[nodiscard]] T left() const { return this->data[2]; }
+  [[nodiscard]] T right() const { return this->data[3]; }
   T data[4]{0};
 };
 
@@ -72,6 +80,7 @@ std::string nearestFraction(float const decimal)
     case 13: { return "13/16"; }
     case 14: { return "7/8"; }
     case 15: { return "15/16"; }
+    case 16: { return "1"; }
     default: return "";
   }
 }
@@ -79,18 +88,18 @@ std::string nearestFraction(float const decimal)
 int main()
 {
   float constexpr mmToInch = 0.03937008f;
-  vec2<float> matSize, printSize, artSize, artCenter, centeringOffset, cutLine, cutLineInch;
-  border<float> artBorder, alignBorder, alignBorderInch;
+  vec2<float> matSize, printSize;
+  border<float> artBorder;
   
   std::cout << "Units: mm" << std::endl;
-  std::cout << "Enter mat board WIDTH: ";
+  std::cout << "Enter mat board width: ";
   std::cin >> matSize.x();
-  std::cout << "Enter mat board HEIGHT: ";
+  std::cout << "Enter mat board height: ";
   std::cin >> matSize.y();
 
-  std::cout << "Enter print WIDTH: ";
+  std::cout << "Enter print width: ";
   std::cin >> printSize.x();
-  std::cout << "Enter print HEIGHT: ";
+  std::cout << "Enter print height: ";
   std::cin >> printSize.y();
 
   std::cout << "Enter TOP art border width: ";
@@ -101,7 +110,8 @@ int main()
   std::cin >> artBorder.left();
   std::cout << "Enter RIGHT art border width: ";
   std::cin >> artBorder.right();
-
+  std::cout << std::endl;
+  
   //Sanity check
   if(matSize.x() == 0 || matSize.y() == 0 || printSize.x() == 0 || printSize.y() == 0 || artBorder.top() == 0 || artBorder.bottom() == 0 || artBorder.left() == 0 || artBorder.right() == 0)
   {
@@ -119,7 +129,7 @@ int main()
     return -1;
   }
 
-  artSize = {std::max(artBorder.left(), artBorder.right()) - std::min(artBorder.left(), artBorder.right()), std::max(artBorder.top(), artBorder.bottom()) - std::min(artBorder.top(), artBorder.bottom())};
+  vec2 artSize = {printSize.x() - (artBorder.left() + artBorder.right()), printSize.y() - (artBorder.top() + artBorder.bottom())};
   if(artSize.x() > printSize.x())
   {
     std::cout << "Art width cannot be larger than the print's width" << std::endl;
@@ -131,34 +141,59 @@ int main()
     return -1;
   }
 
-  artCenter = {artSize.x() / 2.0f, artSize.y() / 2.0f};
-  centeringOffset = {matSize.x() / 2.0f - artCenter.x(), matSize.y() / 2.0f - artCenter.y()};
+  //FIXME math is wrong?
+  vec2 matCenter = {matSize.x() / 2.0f, matSize.y() / 2.0f};
+  
+  border const align{
+    matCenter.y() - artSize.y() / 2.0f - artBorder.top(),
+    matCenter.y() - artSize.y() / 2.0f - artBorder.bottom(),
+    matCenter.x() - artSize.x() / 2.0f - artBorder.left(),
+    matCenter.x() - artSize.x() / 2.0f - artBorder.right()};
+  
+  border const cut{
+    matCenter.y() - artSize.y() / 2.0f,
+    matCenter.y() - artSize.y() / 2.0f,
+    matCenter.x() - artSize.x() / 2.0f,
+    matCenter.x() - artSize.x() / 2.0f};
+  
+  border<float> cutInch = cut * mmToInch;
+  cutInch.floor();
+  border<float> alignInch = align * mmToInch;
+  alignInch.floor();
 
-  cutLine = {centeringOffset.x() + artCenter.x(), centeringOffset.y() + artCenter.y()};
-  cutLineInch = cutLine * mmToInch;
-  cutLineInch.floor();
+  std::string const alignTopIntegral = alignInch.top() == 0 ? "" : std::to_string((int)alignInch.top()) + " ";
+  std::string const alignBottomIntegral = alignInch.bottom() == 0 ? "" : std::to_string((int)alignInch.bottom()) + " ";
+  std::string const alignLeftIntegral = alignInch.left() == 0 ? "" : std::to_string((int)alignInch.left()) + " ";
+  std::string const alignRightIntegral = alignInch.right() == 0 ? "" : std::to_string((int)alignInch.right()) + " ";
+  
+  std::string const alignFracTop = alignTopIntegral + nearestFraction(align.top() * mmToInch - alignInch.top());
+  std::string const alignFracBottom = alignBottomIntegral + nearestFraction(align.bottom() * mmToInch - alignInch.bottom());
+  std::string const alignFracLeft = alignLeftIntegral + nearestFraction(align.left() * mmToInch - alignInch.left());
+  std::string const alignFracRight = alignRightIntegral + nearestFraction(align.right() * mmToInch - alignInch.right());
 
-  alignBorder = {cutLine.y() + artBorder.top(), cutLine.y() + artBorder.bottom(), cutLine.x() + artBorder.left(), cutLine.x() + artBorder.right()};
-  alignBorderInch = alignBorder * mmToInch;
-  alignBorderInch.floor();
+  std::string const cutTopIntegral = cutInch.top() == 0 ? "" : std::to_string((int)cutInch.top()) + " ";
+  std::string const cutBottomIntegral = cutInch.bottom() == 0 ? "" : std::to_string((int)cutInch.bottom()) + " ";
+  std::string const cutLeftIntegral = cutInch.left() == 0 ? "" : std::to_string((int)cutInch.left()) + " ";
+  std::string const cutRightIntegral = cutInch.right() == 0 ? "" : std::to_string((int)cutInch.right()) + " ";
+  
+  std::string const cutFracTop = cutTopIntegral + nearestFraction(cut.top() * mmToInch - cutInch.top());
+  std::string const cutFracBottom = cutBottomIntegral + nearestFraction(cut.bottom() * mmToInch - cutInch.bottom());
+  std::string const cutFracLeft = cutLeftIntegral + nearestFraction(cut.left() * mmToInch - cutInch.left());
+  std::string const cutFracRight = cutRightIntegral + nearestFraction(cut.right() * mmToInch - cutInch.right());
 
-  std::string const alignFracTop = nearestFraction(alignBorderInch.top() - std::floor(alignBorderInch.top()));
-  std::string const alignFracBottom = nearestFraction(alignBorderInch.bottom() - std::floor(alignBorderInch.bottom()));
-  std::string const alignFracLeft = nearestFraction(alignBorderInch.left() - std::floor(alignBorderInch.left()));
-  std::string const alignFracRight = nearestFraction(alignBorderInch.right() - std::floor(alignBorderInch.right()));
+  std::cout << "Make alignment lines on the mat board at "
+    << align.top() << "mm (" << alignFracTop << "\") from the top, "
+    << align.bottom() << "mm (" << alignFracBottom << "\") from the bottom, "
+    << align.left() << "mm (" << alignFracLeft << "\") from the left, "
+    << align.right() << "mm (" <<  alignFracRight << "\") from the right." << std::endl << std::endl;
 
-  std::string const cutFracX = nearestFraction(cutLine.x() - std::floor(cutLine.x()));
-  std::string const cutFracY = nearestFraction(cutLine.y() - std::floor(cutLine.y()));
-
-  std::cout << "Make alignment lines on the mat board at " << alignBorder.top() << "mm (" << alignBorderInch.top() << " " << alignFracTop << "\") from the top, "
-    << alignBorder.bottom() << "mm (" << alignBorderInch.bottom() << " " << alignFracBottom << "\") from the bottom, "
-    << alignBorder.left() << "mm (" << alignBorderInch.left() << " " << alignFracLeft << "\") from the left, "
-    << alignBorder.right() << "mm (" << alignBorderInch.right() << " " << alignFracRight << "\") from the right." << std::endl;
-
-  std::cout << "Make cutout lines on the mat board at " << cutLine.y() << "mm (" << cutLineInch.y() << " " << cutFracY << "\") from the top, "
-    << cutLine.y() << "mm (" << cutLineInch.y() << " " << cutFracY << "\") from the bottom, "
-    << cutLine.x() << "mm (" << cutLineInch.x() << " " << cutFracX << "\") from the left, "
-    << cutLine.x() << "mm (" << cutLineInch.x() << " " << cutFracX << "\") from the right." << std::endl;
+  std::cout << "Make cutout lines on the mat board at "
+    << cut.top() << "mm (" << cutFracTop << "\") from the top, "
+    << cut.bottom() << "mm (" << cutFracBottom << "\") from the bottom, "
+    << cut.left() << "mm (" << cutFracLeft << "\") from the left, "
+    << cut.right() << "mm (" << cutFracRight << "\") from the right." << std::endl;
+  
+  std::cin.get();
   std::cin.get();
 
   return 0;
