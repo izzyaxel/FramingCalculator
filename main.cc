@@ -190,34 +190,34 @@ int main()
     return -1;
 
   border align, cut; //FIXME Math errors, align top/bottom or left/right should not be symmetrical if the borders are not
-  float minBorX = std::min(artBorder.left(), artBorder.right());
-  float maxBorX = std::max(artBorder.left(), artBorder.right());
-  float minBorY = std::min(artBorder.top(), artBorder.bottom());
-  float maxBorY = std::max(artBorder.top(), artBorder.bottom());
-  vec2 bor = (matSize - printSize) / 2.0f;
+  float minBorderX = std::min(artBorder.left(), artBorder.right());
+  float maxBorderX = std::max(artBorder.left(), artBorder.right());
+  float minBorderY = std::min(artBorder.top(), artBorder.bottom());
+  float maxBorderY = std::max(artBorder.top(), artBorder.bottom());
+  vec2 matBorder = (matSize - printSize) / 2.0f;
 
-  if(artBorder.top() == artBorder.bottom())
+  if(artBorder.top() == artBorder.bottom()) //Symmetrical borders
   {
-    align.top() = bor.y();
-    align.bottom() = bor.y();
+    align.top() = matBorder.y();
+    align.bottom() = matBorder.y();
   }
   else
   {
-    float diff = (maxBorY - minBorY) / 2.0f;
-    align.top() = align.top() > align.bottom() ? bor.y() - diff : bor.y() + diff;
-    align.bottom() = align.bottom() > align.top() ? bor.y() - diff : bor.y() + diff;
+    float diff = (maxBorderY - minBorderY) / 2.0f;
+    align.top() = align.top() > align.bottom() ? matBorder.y() - diff : matBorder.y() + diff;
+    align.bottom() = align.bottom() > align.top() ? matBorder.y() - diff : matBorder.y() + diff;
   }
 
-  if(artBorder.left() == artBorder.right())
+  if(artBorder.left() == artBorder.right()) //Symmetrical borders
   {
-    align.left() = bor.x();
-    align.right() = bor.x();
+    align.left() = matBorder.x();
+    align.right() = matBorder.x();
   }
   else
   {
-    float diff = (maxBorX - minBorX) / 2.0f;
-    align.left() = align.left() > align.right() ? bor.x() - diff : bor.x() + diff;
-    align.right() = align.right() > align.left() ? bor.x() - diff : bor.x() + diff;
+    float diff = (maxBorderX - minBorderX) / 2.0f;
+    align.left() = align.left() > align.right() ? matBorder.x() - diff : matBorder.x() + diff;
+    align.right() = align.right() > align.left() ? matBorder.x() - diff : matBorder.x() + diff;
   }
 
   cut = align + artBorder;
