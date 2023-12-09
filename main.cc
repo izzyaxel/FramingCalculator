@@ -21,9 +21,12 @@ template <typename T> struct vec2
   }
   T& x() { return this->data[0]; }
   T& y() { return this->data[1]; }
-
   [[nodiscard]] T x() const { return this->data[0]; }
   [[nodiscard]] T y() const { return this->data[1]; }
+  void print() const
+  {
+    printf("%f %f\n", this->x(), this->y());
+  }
   T data[2]{0};
 };
 
@@ -53,11 +56,14 @@ template <typename T> struct border
   T& bottom() { return this->data[1]; }
   T& left() { return this->data[2]; }
   T& right() { return this->data[3]; }
-
   [[nodiscard]] T top() const { return this->data[0]; }
   [[nodiscard]] T bottom() const { return this->data[1]; }
   [[nodiscard]] T left() const { return this->data[2]; }
   [[nodiscard]] T right() const { return this->data[3]; }
+  void print() const
+  {
+    printf("%f %f %f %f\n", this->top(), this->bottom(), this->left(), this->right());
+  }
   T data[4]{0};
 };
 
@@ -92,23 +98,28 @@ int main()
   border<float> artBorder;
   
   std::cout << "Units: mm" << std::endl;
-  std::cout << "Enter mat board width: ";
+  std::cout << "Mat board dimensions:" << std::endl;
+  std::cout << "Width: ";
   std::cin >> matSize.x();
-  std::cout << "Enter mat board height: ";
+  std::cout << "Height: ";
   std::cin >> matSize.y();
+  std::cout << std::endl;
 
-  std::cout << "Enter print width: ";
+  std::cout << "Print dimensions:" << std::endl;
+  std::cout << "Width: ";
   std::cin >> printSize.x();
-  std::cout << "Enter print height: ";
+  std::cout << "Height: ";
   std::cin >> printSize.y();
+  std::cout << std::endl;
 
-  std::cout << "Enter TOP art border width: ";
+  std::cout << "Borders: (the width of the blank border between the given edge of the print, and where the art begins on that side)" << std::endl;
+  std::cout << "Top border: ";
   std::cin >> artBorder.top();
-  std::cout << "Enter BOTTOM art border width: ";
+  std::cout << "Bottom border: ";
   std::cin >> artBorder.bottom();
-  std::cout << "Enter LEFT art border width: ";
+  std::cout << "Left border: ";
   std::cin >> artBorder.left();
-  std::cout << "Enter RIGHT art border width: ";
+  std::cout << "Right border: ";
   std::cin >> artBorder.right();
   std::cout << std::endl;
   
@@ -140,21 +151,31 @@ int main()
     std::cout << "Art height cannot be larger than the print's height" << std::endl;
     return -1;
   }
-
+  
   //FIXME math is wrong?
   vec2 matCenter = {matSize.x() / 2.0f, matSize.y() / 2.0f};
+  if(artSize.x() + artBorder.left() + artBorder.right() != printSize.x())
+  {
+    std::cout << "Print width does not match given parameters" << std::endl;
+    return -1;
+  }
+  if(artSize.y() + artBorder.top() + artBorder.bottom() != printSize.y())
+  {
+    std::cout << "Print height does not match given parameters" << std::endl;
+    return -1;
+  }
   
   border const align{
-    matCenter.y() - artSize.y() / 2.0f - artBorder.top(),
-    matCenter.y() - artSize.y() / 2.0f - artBorder.bottom(),
-    matCenter.x() - artSize.x() / 2.0f - artBorder.left(),
-    matCenter.x() - artSize.x() / 2.0f - artBorder.right()};
+    matCenter.y() - (artSize.y() / 2.0f - artBorder.top()),
+    matCenter.y() - (artSize.y() / 2.0f - artBorder.bottom()),
+    matCenter.x() - (artSize.x() / 2.0f - artBorder.left()),
+    matCenter.x() - (artSize.x() / 2.0f - artBorder.right())};
   
   border const cut{
-    matCenter.y() - artSize.y() / 2.0f,
-    matCenter.y() - artSize.y() / 2.0f,
-    matCenter.x() - artSize.x() / 2.0f,
-    matCenter.x() - artSize.x() / 2.0f};
+    matCenter.y() - (artSize.y() / 2.0f),
+    matCenter.y() - (artSize.y() / 2.0f),
+    matCenter.x() - (artSize.x() / 2.0f),
+    matCenter.x() - (artSize.x() / 2.0f)};
   
   border<float> cutInch = cut * mmToInch;
   cutInch.floor();
