@@ -1,32 +1,32 @@
 #include <cmath>
 #include <iostream>
 
-struct vec2
+struct Vec2
 {
-  vec2() = default;
-  vec2(float const x, float const y)
+  Vec2() = default;
+  Vec2(float const x, float const y)
   {
     this->x() = x;
     this->y() = y;
   }
-  template <typename U> vec2 operator*(U val) const
+  template <typename U> Vec2 operator*(U val) const
   {
-    vec2 const out{this->x() * val, this->y() * val};
+    Vec2 const out{this->x() * val, this->y() * val};
     return out;
   }
-  template <typename U> vec2 operator-(U val) const
+  template <typename U> Vec2 operator-(U val) const
   {
-    vec2 const out{this->x() - val, this->y() - val};
+    Vec2 const out{this->x() - val, this->y() - val};
     return out;
   }
-  vec2 operator-(vec2 other) const
+  Vec2 operator-(Vec2 other) const
   {
-    vec2 const out{this->x() - other.x(), this->y() - other.y()};
+    Vec2 const out{this->x() - other.x(), this->y() - other.y()};
     return out;
   }
-  template <typename U> vec2 operator/(U val) const
+  template <typename U> Vec2 operator/(U val) const
   {
-    vec2 const out{this->x() / val, this->y() / val};
+    Vec2 const out{this->x() / val, this->y() / val};
     return out;
   }
   void floor()
@@ -45,24 +45,24 @@ struct vec2
   float data[2]{0};
 };
 
-struct border
+struct Border
 {
-  border() = default;
-  border(float t, float b, float l, float r)
+  Border() = default;
+  Border(float t, float b, float l, float r)
   {
     this->top() = t;
     this->bottom() = b;
     this->left() = l;
     this->right() = r;
   }
-  template <typename U> border operator*(U val) const
+  template <typename U> Border operator*(U val) const
   {
-    border const out{this->top() * val, this->bottom() * val, this->left() * val, this->right() * val};
+    Border const out{this->top() * val, this->bottom() * val, this->left() * val, this->right() * val};
     return out;
   }
-  border operator+(border const &other) const
+  Border operator+(Border const &other) const
   {
-    border const out{this->top() + other.top(), this->bottom() + other.bottom(), this->left() + other.left(), this->right() + other.right()};
+    Border const out{this->top() + other.top(), this->bottom() + other.bottom(), this->left() + other.left(), this->right() + other.right()};
     return out;
   }
   void floor()
@@ -116,6 +116,7 @@ bool checkError(bool const predicate, std::string const &failMessage)
   if(!predicate) return false;
   std::cout << failMessage << std::endl;
   std::cin.get();
+  std::cout << "Press any key to continue...";
   std::cin.get();
   return true;
 }
@@ -123,8 +124,8 @@ bool checkError(bool const predicate, std::string const &failMessage)
 int main()
 {
   float constexpr mmToInch = 0.03937008f;
-  vec2 matSize, printSize;
-  border artBorder;
+  Vec2 matSize, printSize;
+  Border artBorder;
 
   std::cout << "Units: mm" << std::endl << std::endl;
   std::cout << "Mat board dimensions:" << std::endl;
@@ -177,7 +178,7 @@ int main()
   if(checkError(artBorder.left() + artBorder.right() >= printSize.x(), "The left and right borders cannot add up to greater than or equal to the print's width!"))
     return -1;
 
-  vec2 artSize = {printSize.x() - (artBorder.left() + artBorder.right()), printSize.y() - (artBorder.top() + artBorder.bottom())};
+  Vec2 artSize = {printSize.x() - (artBorder.left() + artBorder.right()), printSize.y() - (artBorder.top() + artBorder.bottom())};
 
   if(checkError(artSize.x() > printSize.x(), "Art width cannot be larger than the print's width!"))
     return -1;
@@ -189,42 +190,57 @@ int main()
   if(checkError(artSize.y() + artBorder.top() + artBorder.bottom() != printSize.y(), "Print height does not match given parameters!"))
     return -1;
 
-  border align, cut; //FIXME Math errors, align top/bottom or left/right should not be symmetrical if the borders are not
-  float minBorderX = std::min(artBorder.left(), artBorder.right());
-  float maxBorderX = std::max(artBorder.left(), artBorder.right());
-  float minBorderY = std::min(artBorder.top(), artBorder.bottom());
-  float maxBorderY = std::max(artBorder.top(), artBorder.bottom());
-  vec2 matBorder = (matSize - printSize) / 2.0f;
+  Vec2 const matBorder = (matSize - printSize) / 2.0f;
+  Border align = {matBorder.y(), matBorder.y(), matBorder.x(), matBorder.x()};
 
-  if(artBorder.top() == artBorder.bottom()) //Symmetrical borders
+  if(artBorder.top() == artBorder.bottom()) //Symmetrical
   {
     align.top() = matBorder.y();
     align.bottom() = matBorder.y();
   }
-  else
+  else //Asymmetrical
   {
-    float diff = (maxBorderY - minBorderY) / 2.0f;
-    align.top() = align.top() > align.bottom() ? matBorder.y() - diff : matBorder.y() + diff;
-    align.bottom() = align.bottom() > align.top() ? matBorder.y() - diff : matBorder.y() + diff;
+    //FIXME produces all zeroes
+    float adjust = (align.top() - align.bottom()) / 2.0f;
+    if(artBorder.top() > artBorder.bottom())
+    {
+      align.top() -= adjust;
+      align.bottom() += adjust;
+    }
+    else
+    {
+      align.top() += adjust;
+      align.bottom() -= adjust;
+    }
   }
 
-  if(artBorder.left() == artBorder.right()) //Symmetrical borders
+  if(artBorder.left() == artBorder.right()) //Symmetrical
   {
     align.left() = matBorder.x();
     align.right() = matBorder.x();
   }
-  else
+  else //Asymmetrical
   {
-    float diff = (maxBorderX - minBorderX) / 2.0f;
-    align.left() = align.left() > align.right() ? matBorder.x() - diff : matBorder.x() + diff;
-    align.right() = align.right() > align.left() ? matBorder.x() - diff : matBorder.x() + diff;
+    float adjust = (align.left() - align.right()) / 2.0f;
+    if(artBorder.left() > artBorder.right())
+    {
+      align.left() -= adjust;
+      align.right() += adjust;
+    }
+    else
+    {
+      align.left() += adjust;
+      align.right() -= adjust;
+    }
   }
 
-  cut = align + artBorder;
+  if(checkError(align.top() < 0 || align.bottom() < 0 || align.left() < 0 || align.right() < 0, "Error: align contained negative number(s)")) return -1;
+
+  Border const cut = align + artBorder;
   
-  border cutInch = cut * mmToInch;
+  Border cutInch = cut * mmToInch;
   cutInch.floor();
-  border alignInch = align * mmToInch;
+  Border alignInch = align * mmToInch;
   alignInch.floor();
 
   float excess = 0;
@@ -298,6 +314,7 @@ int main()
     << cut.right() << "mm (" << cutRightInchIntegral << cutRightInchFrac << "\") from the right." << std::endl;
 
   std::cin.get();
+  std::cout << std::endl << "Press any key to continue...";
   std::cin.get();
 
   return 0;
